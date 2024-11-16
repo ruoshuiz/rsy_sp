@@ -16,7 +16,7 @@ body {
 
 .container {
     width: 100%;
-    height: 150vh;
+    height: 180vh;
     background: rgba(255, 255, 255, 0.05);
     border-radius: 20px;
     backdrop-filter: blur(10px);
@@ -93,6 +93,7 @@ body {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    height: 0vh;
 }
 
 .player-info {
@@ -100,8 +101,8 @@ body {
 }
 
 .album-cover {
-    width: 300px;
-    height: 300px;
+    width: 200px;
+    height: 200px;
     margin: 0 auto 30px;
     border-radius: 20px;
     overflow: hidden;
@@ -227,7 +228,7 @@ body {
 
 /* 在现有的 CSS 中添加歌词相关样式 */
 .lyrics-container {
-    height: 150px;
+    height: 220px;
     overflow-y: auto;
     margin: 20px 0;
     padding: 10px;
@@ -298,7 +299,7 @@ body {
 }
 
 .lyrics-container {
-    height: 120px;
+    height: 220px;
     overflow-y: auto;
     scroll-behavior: smooth;
     position: relative;
