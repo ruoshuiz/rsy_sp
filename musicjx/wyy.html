@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>若水解析</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.bootcdn.net/ajax/libs/aplayer/1.10.1/APlayer.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --gradient-start: #D8E3D2;
+            --gradient-end: #A8C99B;
+            --card-bg: rgba(255, 255, 255, 0.96);
+            --text-primary: #2C4A3E;
+            --text-secondary: #6B8B7A;
+            --accent-green: #8BA889;
+            --hover-green: #759F84;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            font-family: 'LXGW WenKai', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-primary);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 920px;
+            padding: 1.5rem;
+        }
+
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border-radius: 1.5rem;
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            text-align: center;
+            padding: 3rem 2rem;
+            background: linear-gradient(45deg, #9DBF92, #7AA67B);
+            color: white;
+            clip-path: polygon(0 0, 100% 0, 100% 90%, 0 100%);
+        }
+
+        .header h1 {
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            font-size: 2.5rem;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-section {
+            padding: 2.5rem;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            z-index: 2;
+        }
+
+        .form-control {
+            height: 3.25rem;
+            padding-left: 3rem;
+            border: 2px solid #D1E0D7;
+            border-radius: 0.75rem;
+            transition: all 0.3s ease;
+            color: var(--text-primary);
+        }
+
+        .form-control:focus {
+            border-color: var(--accent-green);
+            box-shadow: 0 0 0 3px rgba(139, 168, 137, 0.2);
+        }
+
+        .quality-select {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='%236B8B7A' stroke='%236B8B7A' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+            background-position: right 1rem center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, var(--accent-green), var(--hover-green));
+            border: none;
+            padding: 1rem 2.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(45deg, var(--hover-green), var(--accent-green));
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(107, 139, 122, 0.3);
+        }
+
+        .result-card {
+            padding: 2rem;
+            background: var(--card-bg);
+            border-radius: 1rem;
+            margin-top: 2rem;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .result-card.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .album-art {
+            width: 100%;
+            max-width: 280px;
+            border-radius: 1rem;
+            box-shadow: 0 12px 24px -8px rgba(44, 74, 62, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .album-art:hover {
+            transform: scale(1.03) rotate(-1deg);
+        }
+
+        .metadata-badge {
+            font-size: 0.9rem;
+            padding: 0.6rem 1.2rem;
+            border-radius: 0.75rem;
+            background: rgba(139, 168, 137, 0.12);
+            color: var(--text-primary);
+            border: 1px solid rgba(107, 139, 122, 0.15);
+        }
+
+        .lyric-box {
+            background: rgba(235, 242, 230, 0.6);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-top: 2rem;
+            line-height: 1.8;
+            color: var(--text-secondary);
+        }
+
+        .alert-danger {
+            background: rgba(220, 53, 69, 0.15);
+            border: 1px solid rgba(220, 53, 69, 0.2);
+            color: #dc3545;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 2rem 1.5rem;
+            }
+            .header h1 {
+                font-size: 2rem;
+            }
+            .form-section {
+                padding: 1.5rem;
+            }
+            .album-art {
+                max-width: 220px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="glass-card">
+            <div class="header">
+                <h1>🍵 若水解析 · 网易云音乐</h1>
+                <p class="lead">自然之韵 · 纯净音质</p>
+            </div>
+
+            <div class="form-section">
+                <form id="query-form">
+                    <div class="alert-container mb-3"></div>
+
+                    <div class="input-group mb-4">
+                        <svg class="input-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                        <input type="text" id="song_ids" class="form-control" placeholder="输入网易云歌曲ID或分享链接">
+                    </div>
+
+                    <div class="input-group mb-4">
+                        <select id="level" class="form-select quality-select">
+                            <option value="standard">标准音质</option>
+                            <option value="exhigh">极高音质</option>
+                            <option value="lossless">无损音质</option>
+                            <option value="hires">Hi-Res</option>
+                            <option value="jymaster">超清母带</option>
+                            <option value="jyeffect">高清环绕声</option>
+                            <option value="sky">沉浸环绕声</option>
+                        </select>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+                            🎶 立即解析
+                        </button>
+                    </div>
+                </form>
+
+                <div id="song-info" class="result-card">
+                    <div id="aplayer"></div>
+                    <div class="text-center">
+                        <img id="song_pic" class="album-art mb-4" alt="专辑封面">
+                        <h3 class="mb-2" id="song_name"></h3>
+                        <p class="text-muted mb-4" id="artist_names"></p>
+
+                        <div class="d-flex flex-wrap gap-2 justify-content-center mb-4">
+                            <span id="audio_quality" class="metadata-badge"></span>
+                            <span id="audio_size" class="metadata-badge"></span>
+                            <span id="album_name" class="metadata-badge"></span>
+                        </div>
+
+                        <a id="download_btn" href="#" class="btn btn-primary d-none" download>
+                            ⬇️ 下载歌曲
+                        </a>
+
+                        <div class="lyric-box mt-4">
+                            <h6 class="text-muted mb-3">📜 歌词</h6>
+                            <div id="lyric" class="lyric-content"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/aplayer/1.10.1/APlayer.min.js"></script>
+
+
+    <script>
+        $(document).ready(function() {
+            const aplayerContainer = document.getElementById('aplayer');
+            let aplayerInstance = null;
+
+            // 保持原有辅助函数不变
+            // ... 
+
+            $('#query-form').on('submit', function(e) {
+                e.preventDefault();
+                const $btn = $(this).find('button[type="submit"]');
+                $btn.prop('disabled', true).find('.spinner-border').removeClass('d-none');
+
+                const songId = $('#song_ids').val().trim();
+                const level = $('#level').val();
+
+                if (!songId) {
+                    showAlert('请输入有效的歌曲ID或链接');
+                    $btn.prop('disabled', false);
+                    return;
+                }
+
+                // 判断输入类型（ID或链接）
+                const isNeteaseId = /^\d+$/.test(songId);
+                const paramKey = isNeteaseId ? 'ids' : 'url';
+                
+                $.ajax({
+                    url: `https://api.kxzjoker.cn/api/163_music?${paramKey}=${encodeURIComponent(songId)}&level=${level}&type=json`,
+                    dataType: 'json',
+                    success: (data) => {
+                        if (data.status === 200) { // 状态码字段改为status
+                            if(aplayerInstance) {
+                                aplayerInstance.destroy();
+                                aplayerInstance = null;
+                            }
+                            
+                            // 更新数据映射
+                            const newCover = data.pic.replace(/\\/g, '');
+                            const timestamp = new Date().getTime();
+                            $('#song_pic').attr('src', newCover + (newCover.includes('?') ? '&' : '?') + 't=' + timestamp);
+                            $('#song_name').text(data.name);
+                            $('#artist_names').text(data.ar_name); // 字段改为ar_name
+                            $('#lyric').html(data.lyric.replace(/\n/g, '<br>')); // 字段改为lyric
+                            $('#audio_quality').text(`音质: ${data.level}`); // 字段改为level
+                            $('#audio_size').text(`大小: ${data.size}`);
+                            $('#album_name').text(`专辑: ${data.al_name}`); // 字段改为al_name
+                            $('#download_btn').attr('href', data.url).removeClass('d-none');
+                            
+                            $('#song_pic').off('error').on('error', function() {
+                                $(this).attr('src', 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=');
+                            });
+
+                            aplayerInstance = new APlayer({
+                                container: aplayerContainer,
+                                lrcType: 1,
+                                fixed: true,
+                                audio: [{
+                                    name: data.name,
+                                    artist: data.ar_name,
+                                    url: data.url,
+                                    cover: newCover,
+                                    lrc: data.lyric // 使用主歌词
+                                }]
+                            });
+                            
+                            $('#song-info').addClass('show');
+                        } else {
+                            showAlert(`解析失败: ${data.msg || '未知错误'} [状态码: ${data.status}]`);
+                        }
+                    },
+                    error: (jqXHR) => {
+                        const errorMessage = handleApiError(jqXHR);
+                        showAlert(errorMessage);
+                    },
+                    complete: () => {
+                        $btn.prop('disabled', false)
+                           .find('.spinner-border')
+                           .addClass('d-none');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
