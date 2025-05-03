@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>机器人消息发送器</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            background-color: #f5f5f5;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #1a73e8;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 150px;
+            resize: vertical;
+        }
+        .btn {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn:hover {
+            background-color: #1557b0;
+        }
+        .btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .response-area {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            min-height: 100px;
+        }
+        .success {
+            color: #28a745;
+        }
+        .error {
+            color: #dc3545;
+        }
+        .sending {
+            color: #fd7e14;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>机器人消息发送器</h1>
+        
+        <form id="messageForm">
+            <div class="form-group">
+                <label for="robotType">选择机器人类型:</label>
+                <select id="robotType" name="robotType">
+                    <option value="dingtalk">钉钉机器人</option>
+                    <option value="wechatwork">企业微信机器人</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="messageType">选择消息类型:</label>
+                <select id="messageType" name="messageType">
+                    <option value="text">文本消息</option>
+                    <option value="markdown">Markdown消息</option>
+                    <option value="image">图片消息</option>
+                    <option value="news">图文消息</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="messageContent">消息内容:</label>
+                <textarea id="messageContent" name="messageContent" placeholder="请输入要发送的消息内容"></textarea>
+            </div>
+            
+            <div class="form-group" id="messageTitleGroup">
+                <label for="messageTitle">消息标题:</label>
+                <input type="text" id="messageTitle" name="messageTitle" placeholder="请输入消息标题">
+            </div>
+            
+            <div class="form-group" id="actionUrlGroup">
+                <label for="actionUrl">动作URL:</label>
+                <input type="text" id="actionUrl" name="actionUrl" placeholder="请输入动作URL">
+            </div>
+            
+            <div class="form-group" id="picUrlGroup">
+                <label for="picUrl">图片URL:</label>
+                <input type="text" id="picUrl" name="picUrl" placeholder="请输入图片URL">
+            </div>
+            
+            <div class="form-group" id="btnOrientationGroup">
+                <label for="btnOrientation">按钮排列方式:</label>
+                <select id="btnOrientation" name="btnOrientation">
+                    <option value="0">竖直排列</option>
+                    <option value="1">横向排列</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="webhookUrl">Webhook URL:</label>
+                <select id="webhookUrl" name="webhookUrl">
+                    <option value="">请选择或输入新的Webhook URL</option>
+                </select>
+                <input type="text" id="webhookUrlInput" name="webhookUrlInput" placeholder="请输入机器人的Webhook地址" style="margin-top: 5px;">
+            </div>
+            
+            <div class="form-group" id="accessKeyGroup">
+                <label for="accessKey">Access Key (钉钉加签):</label>
+                <select id="accessKey" name="accessKey">
+                    <option value="">请选择或输入新的Access Key</option>
+                </select>
+                <input type="text" id="accessKeyInput" name="accessKeyInput" placeholder="钉钉机器人加签密钥（可选）" style="margin-top: 5px;">
+            </div>
+            
+            <div class="form-group">
+                <input type="submit" id="sendBtn" class="btn" value="发送消息">
+            </div>
+        </form>
+        
+        <div id="response" class="response-area"></div>
+    </div>
+
+    <script>
+        // 初始化历史记录
+        let webhookHistory = JSON.parse(localStorage.getItem('webhookHistory')) || [];
+        let accessKeyHistory = JSON.parse(localStorage.getItem('accessKeyHistory')) || [];
+
+        // 加载历史记录到下拉框
+        function loadHistory() {
+            const webhookUrlSelect = document.getElementById('webhookUrl');
+            const accessKeySelect = document.getElementById('accessKey');
+            
+            webhookUrlSelect.innerHTML = '<option value="">请选择或输入新的Webhook URL</option>';
+            accessKeySelect.innerHTML = '<option value="">请选择或输入新的Access Key</option>';
+            
+            webhookHistory.forEach(url => {
+                const option = document.createElement('option');
+                option.value = url;
+                option.textContent = url;
+                webhookUrlSelect.appendChild(option);
+            });
+            
+            accessKeyHistory.forEach(key => {
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = key;
+                accessKeySelect.appendChild(option);
+            });
+        }
+
+        // 保存历史记录
+        function saveHistory(webhookUrl, accessKey) {
+            // 更新Webhook URL历史记录
+            if (webhookUrl) {
+                if (webhookHistory.includes(webhookUrl)) {
+                    webhookHistory.splice(webhookHistory.indexOf(webhookUrl), 1);
+                }
+                webhookHistory.unshift(webhookUrl);
+                if (webhookHistory.length > 5) {
+                    webhookHistory.pop();
+                }
+                localStorage.setItem('webhookHistory', JSON.stringify(webhookHistory));
+            }
+            
+            // 更新Access Key历史记录
+            if (accessKey) {
+                if (accessKeyHistory.includes(accessKey)) {
+                    accessKeyHistory.splice(accessKeyHistory.indexOf(accessKey), 1);
+                }
+                accessKeyHistory.unshift(accessKey);
+                if (accessKeyHistory.length > 5) {
+                    accessKeyHistory.pop();
+                }
+                localStorage.setItem('accessKeyHistory', JSON.stringify(accessKeyHistory));
+            }
+        }
+
+        // 根据机器人类型显示或隐藏钉钉加签输入框
+        document.getElementById('robotType').addEventListener('change', function() {
+            const accessKeyGroup = document.getElementById('accessKeyGroup');
+            const messageTitleGroup = document.getElementById('messageTitleGroup');
+            const actionUrlGroup = document.getElementById('actionUrlGroup');
+            const picUrlGroup = document.getElementById('picUrlGroup');
+            const btnOrientationGroup = document.getElementById('btnOrientationGroup');
+            const messageTypeSelect = document.getElementById('messageType');
+            
+            if (this.value === 'dingtalk') {
+                // 钉钉机器人
+                accessKeyGroup.style.display = 'block';
+                // 重置消息类型选项为钉钉支持的类型
+                messageTypeSelect.innerHTML = `
+                    <option value="text">文本消息</option>
+                    <option value="markdown">Markdown消息</option>
+                    <option value="link">链接消息</option>
+                    <option value="actionCard">ActionCard消息</option>
+                    <option value="feedCard">FeedCard消息</option>
+                `;
+            } else {
+                // 企业微信机器人
+                accessKeyGroup.style.display = 'none';
+                // 重置消息类型选项为企业微信支持的类型
+                messageTypeSelect.innerHTML = `
+                    <option value="text">文本消息</option>
+                    <option value="markdown">Markdown消息</option>
+                    <option value="image">图片消息</option>
+                    <option value="news">图文消息</option>
+                `;
+            }
+            
+            // 触发消息类型变化事件，更新相关输入框的显示状态
+            messageTypeSelect.dispatchEvent(new Event('change'));
+        });
+        
+        // 根据消息类型显示或隐藏相关输入框
+        document.getElementById('messageType').addEventListener('change', function() {
+            const robotType = document.getElementById('robotType').value;
+            const messageTitleGroup = document.getElementById('messageTitleGroup');
+            const actionUrlGroup = document.getElementById('actionUrlGroup');
+            const picUrlGroup = document.getElementById('picUrlGroup');
+            const btnOrientationGroup = document.getElementById('btnOrientationGroup');
+            
+            if (robotType === 'dingtalk') {
+                // 钉钉机器人
+                messageTitleGroup.style.display = this.value === 'markdown' || this.value === 'link' || this.value === 'actionCard' || this.value === 'feedCard' ? 'block' : 'none';
+                actionUrlGroup.style.display = this.value === 'link' || this.value === 'actionCard' || this.value === 'feedCard' ? 'block' : 'none';
+                picUrlGroup.style.display = this.value === 'link' || this.value === 'actionCard' || this.value === 'feedCard' ? 'block' : 'none';
+                btnOrientationGroup.style.display = this.value === 'actionCard' ? 'block' : 'none';
+            } else {
+                // 企业微信机器人
+                messageTitleGroup.style.display = this.value === 'news' ? 'block' : 'none';
+                actionUrlGroup.style.display = this.value === 'news' ? 'block' : 'none';
+                picUrlGroup.style.display = this.value === 'image' || this.value === 'news' ? 'block' : 'none';
+                btnOrientationGroup.style.display = 'none'; // 企业微信不支持按钮排列方式
+            }
+        });
+        
+        // 初始化时显示钉钉加签输入框（默认选择钉钉）
+        document.addEventListener('DOMContentLoaded', function() {
+            loadHistory();
+            const accessKeyGroup = document.getElementById('accessKeyGroup');
+            accessKeyGroup.style.display = 'block';
+            // 默认显示钉钉支持的消息类型
+            document.getElementById('robotType').dispatchEvent(new Event('change'));
+        });
+        
+        document.getElementById('messageForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // 获取表单数据
+            const robotType = document.getElementById('robotType').value;
+            const messageType = document.getElementById('messageType').value;
+            const messageContent = document.getElementById('messageContent').value;
+            const webhookUrl = document.getElementById('webhookUrl').value || document.getElementById('webhookUrlInput').value;
+            const accessKey = document.getElementById('accessKey').value || document.getElementById('accessKeyInput').value;
+            const messageTitle = document.getElementById('messageTitle').value;
+            const actionUrl = document.getElementById('actionUrl').value;
+            const picUrl = document.getElementById('picUrl').value;
+            const btnOrientation = document.getElementById('btnOrientation').value;
+            
+            // 验证表单
+            if (!messageContent.trim()) {
+                showError('请输入消息内容');
+                return;
+            }
+            
+            if (!webhookUrl.trim()) {
+                showError('请输入Webhook地址');
+                return;
+            }
+            
+            // 保存历史记录
+            saveHistory(webhookUrl, accessKey);
+            
+            // 禁用发送按钮并显示发送中...
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = true;
+            sendBtn.value = '发送中...';
+            showSending('正在发送消息，请稍候...');
+            
+            // 发送请求到后端
+            const formData = new FormData();
+            formData.append('robotType', robotType);
+            formData.append('messageType', messageType);
+            formData.append('messageContent', messageContent);
+            formData.append('webhookUrl', webhookUrl);
+            formData.append('accessKey', accessKey);
+            formData.append('messageTitle', messageTitle);
+            formData.append('actionUrl', actionUrl);
+            formData.append('picUrl', picUrl);
+            formData.append('btnOrientation', btnOrientation);
+            
+            fetch('http://serv00.633233.xyz/api/send-robot-dtorwc/send_message.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showSuccess(data.message);
+                } else {
+                    showError(data.message);
+                }
+            })
+            .catch(error => {
+                showError('发送失败，请检查网络连接或Webhook地址');
+                console.error('Error:', error);
+            })
+            .finally(() => {
+                // 恢复按钮状态
+                sendBtn.disabled = false;
+                sendBtn.value = '发送消息';
+            });
+        });
+        
+        function showSuccess(message) {
+            const responseDiv = document.getElementById('response');
+            responseDiv.innerHTML = `<div class="success">${message}</div>`;
+        }
+        
+        function showError(message) {
+            const responseDiv = document.getElementById('response');
+            responseDiv.innerHTML = `<div class="error">${message}</div>`;
+        }
+        
+        function showSending(message) {
+            const responseDiv = document.getElementById('response');
+            responseDiv.innerHTML = `<div class="sending">${message}</div>`;
+        }
+    </script>
+</body>
+</html>
