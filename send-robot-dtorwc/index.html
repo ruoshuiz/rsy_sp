@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>机器人消息发送器 - 若水云</title>
+    <title>机器人消息发送器</title>
     <style>
         body {
             font-family: 'Microsoft YaHei', sans-serif;
@@ -80,7 +80,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>若水机器人消息发送器</h1>
+        <h1>机器人消息发送器</h1>
         
         <form id="messageForm">
             <div class="form-group">
@@ -134,7 +134,7 @@
                 <select id="webhookUrl" name="webhookUrl">
                     <option value="">请选择或输入新的Webhook URL</option>
                 </select>
-                <input type="text" id="webhookUrlInput" name="webhookUrlInput" placeholder="请输入机器人的Webhook地址" style="margin-top: 5px;">
+                <input type="text" id="webhookUrlInput" name="webhookUrlInput" placeholder="请输入机器人的Webhook地址" style="margin-top: 5px; display: block;" class="webhook-input">
             </div>
             
             <div class="form-group" id="accessKeyGroup">
@@ -142,7 +142,7 @@
                 <select id="accessKey" name="accessKey">
                     <option value="">请选择或输入新的Access Key</option>
                 </select>
-                <input type="text" id="accessKeyInput" name="accessKeyInput" placeholder="钉钉机器人加签密钥（可选）" style="margin-top: 5px;">
+                <input type="text" id="accessKeyInput" name="accessKeyInput" placeholder="钉钉机器人加签密钥（可选）" style="margin-top: 5px; display: block;">
             </div>
             
             <div class="form-group">
@@ -266,7 +266,33 @@
                 btnOrientationGroup.style.display = 'none'; // 企业微信不支持按钮排列方式
             }
         });
-        
+
+        // 处理Webhook URL选择框的变化
+        document.getElementById('webhookUrl').addEventListener('change', function() {
+            const webhookUrlInput = document.getElementById('webhookUrlInput');
+            if (this.value === '') {
+                // 如果选择的是"请选择或输入新的Webhook URL"，则显示输入框
+                webhookUrlInput.style.display = 'block';
+                webhookUrlInput.value = ''; // 清空输入框
+            } else {
+                // 如果选择了历史记录中的Webhook URL，则隐藏输入框
+                webhookUrlInput.style.display = 'none';
+            }
+        });
+
+        // 处理Access Key选择框的变化
+        document.getElementById('accessKey').addEventListener('change', function() {
+            const accessKeyInput = document.getElementById('accessKeyInput');
+            if (this.value === '') {
+                // 如果选择的是"请选择或输入新的Access Key"，则显示输入框
+                accessKeyInput.style.display = 'block';
+                accessKeyInput.value = ''; // 清空输入框
+            } else {
+                // 如果选择了历史记录中的Access Key，则隐藏输入框
+                accessKeyInput.style.display = 'none';
+            }
+        });
+
         // 初始化时显示钉钉加签输入框（默认选择钉钉）
         document.addEventListener('DOMContentLoaded', function() {
             loadHistory();
@@ -274,6 +300,12 @@
             accessKeyGroup.style.display = 'block';
             // 默认显示钉钉支持的消息类型
             document.getElementById('robotType').dispatchEvent(new Event('change'));
+            
+            // 默认显示Webhook URL和Access Key输入框
+            const webhookUrlInput = document.getElementById('webhookUrlInput');
+            const accessKeyInput = document.getElementById('accessKeyInput');
+            webhookUrlInput.style.display = 'block';
+            accessKeyInput.style.display = 'block';
         });
         
         document.getElementById('messageForm').addEventListener('submit', function(e) {
@@ -283,8 +315,14 @@
             const robotType = document.getElementById('robotType').value;
             const messageType = document.getElementById('messageType').value;
             const messageContent = document.getElementById('messageContent').value;
-            const webhookUrl = document.getElementById('webhookUrl').value || document.getElementById('webhookUrlInput').value;
-            const accessKey = document.getElementById('accessKey').value || document.getElementById('accessKeyInput').value;
+            const webhookUrlSelect = document.getElementById('webhookUrl');
+            const webhookUrl = webhookUrlSelect.value;
+            const webhookUrlInput = document.getElementById('webhookUrlInput');
+            const webhookUrlInputValue = webhookUrlInput.value;
+            const accessKeySelect = document.getElementById('accessKey');
+            const accessKey = accessKeySelect.value;
+            const accessKeyInput = document.getElementById('accessKeyInput');
+            const accessKeyInputValue = accessKeyInput.value;
             const messageTitle = document.getElementById('messageTitle').value;
             const actionUrl = document.getElementById('actionUrl').value;
             const picUrl = document.getElementById('picUrl').value;
@@ -296,13 +334,30 @@
                 return;
             }
             
-            if (!webhookUrl.trim()) {
+            let webhookUrlToSend = '';
+            if (webhookUrl) {
+                webhookUrlToSend = webhookUrl;
+            } else if (webhookUrlInputValue.trim()) {
+                webhookUrlToSend = webhookUrlInputValue;
+            } else {
                 showError('请输入Webhook地址');
                 return;
             }
             
+            let accessKeyToSend = '';
+            if (accessKey) {
+                accessKeyToSend = accessKey;
+            } else if (accessKeyInputValue.trim()) {
+                accessKeyToSend = accessKeyInputValue;
+            } else {
+                if (robotType === 'dingtalk') {
+                    showError('请输入Access Key');
+                    return;
+                }
+            }
+            
             // 保存历史记录
-            saveHistory(webhookUrl, accessKey);
+            saveHistory(webhookUrlToSend, accessKeyToSend);
             
             // 禁用发送按钮并显示发送中...
             const sendBtn = document.getElementById('sendBtn');
@@ -315,18 +370,25 @@
             formData.append('robotType', robotType);
             formData.append('messageType', messageType);
             formData.append('messageContent', messageContent);
-            formData.append('webhookUrl', webhookUrl);
-            formData.append('accessKey', accessKey);
+            formData.append('webhookUrl', webhookUrlToSend);
+            formData.append('accessKey', accessKeyToSend);
             formData.append('messageTitle', messageTitle);
             formData.append('actionUrl', actionUrl);
             formData.append('picUrl', picUrl);
             formData.append('btnOrientation', btnOrientation);
             
-            fetch('https://serv00.633233.xyz/api/send-robot-dtorwc/send_message.php', {
+            fetch('http://serv00.633233.xyz/api/send-robot-dtorwc/send_message.php', {
                 method: 'POST',
+                mode: 'cors', // 使用CORS模式
+                credentials: 'same-origin',
                 body: formData
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     showSuccess(data.message);
